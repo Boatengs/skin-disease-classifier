@@ -7,7 +7,7 @@ Classifies 7 types of skin lesions from dermoscopy images using EfficientNetB0 w
 - Test Accuracy: 74.15%
 - Vascular Lesion detection: 92.9%
 - Melanoma detection: 75.0%
-- Training: 10 epochs on T4 GPU
+- Training: 10 epochs on T4 GPU — Free Google Colab
 
 ## Classes
 
@@ -50,8 +50,9 @@ Classifies 7 types of skin lesions from dermoscopy images using EfficientNetB0 w
 - Matplotlib + Seaborn
 - Google Colab T4 GPU
 
-## Links
+## Portfolio Links
 
+- Project 4 LLM Eval Framework: https://github.com/Boatengs/llm-evaluation-framework
 - Project 3 Medical QA LoRA: https://github.com/Boatengs/medical-qa-lora
 - Project 2 SPORTZBOT RAG: https://github.com/Boatengs/sports-rag-chatbot-
 - Project 1 Sentiment Analyzer: https://github.com/Boatengs/sentiment-analyzer
