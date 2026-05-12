@@ -1,4 +1,4 @@
-# 🏥 Skin Disease Classification — EfficientNetB0 + Transfer Learning
+#  Skin Disease Classification — EfficientNetB0 + Transfer Learning
 
 Classifies 7 types of skin lesions from dermoscopy images using EfficientNetB0 with transfer learning and Grad-CAM explainability. Trained on the HAM10000 dataset.
 
