@@ -58,4 +58,4 @@ Classifies 7 types of skin lesions from dermoscopy images using EfficientNetB0 w
 - Project 1 Sentiment Analyzer: https://github.com/Boatengs/sentiment-analyzer
 
 ## 🌍 Live Demo
-- **HuggingFace Space:** https://huggingface.co/spaces/samboateng190/skin-disease-classifier
+- **HuggingFace Space:** https://huggingface.co/spaces/samurvivor-07/skin-disease-classifier
