@@ -5,3 +5,4 @@ __pycache__/
 venv/
 *.pth
 skin_data/
+!models/*.pth
