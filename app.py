@@ -293,11 +293,21 @@ document.addEventListener('DOMContentLoaded', () => {
 GRADIO_6 = int(gr.__version__.split(".")[0]) >= 6
 
 # The custom styles are built for a light page; the app's own toggle handles dark mode.
-# Gradio follows the browser's dark preference, so drop its dark class on load.
-FORCE_LIGHT_JS = "() => { document.body.classList.remove('dark'); document.documentElement.classList.remove('dark'); }"
+# Gradio follows the browser's dark preference, so a head script keeps its dark class off.
+FORCE_LIGHT_HEAD = """<script>
+(function () {
+  function strip() { if (document.body) document.body.classList.remove("dark"); }
+  function start() {
+    strip();
+    new MutationObserver(strip).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
+})();
+</script>"""
 
 with gr.Blocks(title=" Skin Disease Classifier",
-               **({} if GRADIO_6 else {"css": css, "js": FORCE_LIGHT_JS})) as demo:
+               **({} if GRADIO_6 else {"css": css, "head": FORCE_LIGHT_HEAD})) as demo:
 
     gr.HTML(f"""
     <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()">🌙</button>
@@ -419,4 +429,4 @@ with gr.Blocks(title=" Skin Disease Classifier",
         outputs=[diagnosis_output, confidence_output]
     )
 
-demo.launch(**({"css": css, "js": FORCE_LIGHT_JS} if GRADIO_6 else {}))
+demo.launch(**({"css": css, "head": FORCE_LIGHT_HEAD} if GRADIO_6 else {}))
