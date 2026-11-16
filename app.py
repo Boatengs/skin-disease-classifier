@@ -112,7 +112,7 @@ css = """
     --radius: 16px;
 }
 
-[data-theme="dark"], .dark {
+[data-theme="dark"] {
     --bg-primary: #0f172a;
     --bg-secondary: #1e293b;
     --bg-card: #1e293b;
@@ -292,7 +292,12 @@ document.addEventListener('DOMContentLoaded', () => {
 # Gradio 6 takes css in launch(); earlier versions take it in Blocks().
 GRADIO_6 = int(gr.__version__.split(".")[0]) >= 6
 
-with gr.Blocks(title=" Skin Disease Classifier", **({} if GRADIO_6 else {"css": css})) as demo:
+# The custom styles are built for a light page; the app's own toggle handles dark mode.
+# Gradio follows the browser's dark preference, so drop its dark class on load.
+FORCE_LIGHT_JS = "() => { document.body.classList.remove('dark'); document.documentElement.classList.remove('dark'); }"
+
+with gr.Blocks(title=" Skin Disease Classifier",
+               **({} if GRADIO_6 else {"css": css, "js": FORCE_LIGHT_JS})) as demo:
 
     gr.HTML(f"""
     <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()">🌙</button>
@@ -414,4 +419,4 @@ with gr.Blocks(title=" Skin Disease Classifier", **({} if GRADIO_6 else {"css": 
         outputs=[diagnosis_output, confidence_output]
     )
 
-demo.launch(**({"css": css} if GRADIO_6 else {}))
+demo.launch(**({"css": css, "js": FORCE_LIGHT_JS} if GRADIO_6 else {}))
