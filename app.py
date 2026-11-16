@@ -6,6 +6,8 @@ import torchvision.models as models
 import torch.nn as nn
 from PIL import Image
 import numpy as np
+import os
+import urllib.request
 
 # ── Class Names ────────────────────────────────────────────────
 class_names = {
@@ -38,7 +40,16 @@ model.classifier = nn.Sequential(
     nn.Dropout(p=0.2),
     nn.Linear(256, 7)
 )
-model.load_state_dict(torch.load("best_skin_model.pth", map_location=device))
+# Version 2 model: trained on a lesion-level split (see the GitHub README).
+MODEL_PATH = "lesion_split_efficientnet_b0.pth"
+MODEL_URL = "https://github.com/Boatengs/skin-disease-classifier/raw/main/models/lesion_split_efficientnet_b0.pth"
+if not os.path.exists(MODEL_PATH):
+    urllib.request.urlretrieve(MODEL_URL, MODEL_PATH)
+model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+
+# Both values were fitted on the validation set (results/summary.json in the repo).
+TEMPERATURE = 1.3306          # temperature scaling for calibrated probabilities
+MELANOMA_THRESHOLD = 0.0946   # flags about 90% of melanomas on validation
 model.eval()
 model = model.to(device)
 
@@ -55,13 +66,22 @@ def predict(image):
     img_tensor = transform(img).unsqueeze(0).to(device)
     with torch.no_grad():
         outputs = model(img_tensor)
-        probs   = torch.softmax(outputs, dim=1)[0]
+        probs   = torch.softmax(outputs / TEMPERATURE, dim=1)[0]
     results = {class_names[i]: float(probs[i]) for i in range(7)}
     top_idx = probs.argmax().item()
+    mel_prob = float(probs[0])
+    mel_flag = (
+        f"**Melanoma screen:** flagged for review (melanoma probability {mel_prob*100:.1f}%, "
+        f"threshold {MELANOMA_THRESHOLD*100:.1f}%)"
+        if mel_prob >= MELANOMA_THRESHOLD
+        else f"**Melanoma screen:** below the review threshold ({mel_prob*100:.1f}%)"
+    )
     diagnosis = f"""
 ### {class_names[top_idx]}
 **Confidence:** {float(probs[top_idx])*100:.1f}%
 **Risk Level:** {risk_levels[top_idx]}
+
+{mel_flag}
 
 ---
  For educational purposes only. Always consult a qualified dermatologist.
@@ -283,21 +303,21 @@ with gr.Blocks(css=css, title=" Skin Disease Classifier") as demo:
         </p>
         <div class="badges">
             <span class="badge accent">EfficientNetB0</span>
-            <span class="badge accent">74.15% Accuracy</span>
+            <span class="badge accent">76.5% Accuracy on Unseen Lesions</span>
             <span class="badge">HAM10000 Dataset</span>
             <span class="badge">7 Classes</span>
-            <span class="badge">10K+ Images Trained</span>
+            <span class="badge">Lesion-Level Evaluation</span>
         </div>
     </div>
 
     <div class="stats-row">
         <div class="stat-card">
-            <div class="stat-value">74.15%</div>
-            <div class="stat-label">Test Accuracy</div>
+            <div class="stat-value">76.5%</div>
+            <div class="stat-label">Accuracy on Unseen Lesions</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value">10,015</div>
-            <div class="stat-label">Training Images</div>
+            <div class="stat-value">0.879</div>
+            <div class="stat-label">Melanoma AUROC</div>
         </div>
         <div class="stat-card">
             <div class="stat-value">7</div>
