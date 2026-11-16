@@ -7,6 +7,9 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - run: pip install -q pandas
       - name: Hardware
         run: nproc; free -g; df -h / | tail -1
       - name: Dataverse file list
@@ -26,8 +29,6 @@ jobs:
           head -5 meta; wc -l meta
           python3 -c "
           import pandas as pd; m=pd.read_csv('meta'); print(m.shape, m.lesion_id.nunique(), m.image_id.nunique()); print(m.dx.value_counts()); print(m.groupby('lesion_id').size().value_counts().sort_index())"
-      - uses: actions/setup-python@v5
-        with: {python-version: "3.11"}
       - name: CPU speed test
         run: |
           pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
@@ -44,4 +45,15 @@ jobs:
           for _ in range(2):
               opt.zero_grad(); m(x).sum().backward(); opt.step()
           print('train img/s (full)', 64/(time.time()-t))
+          for p in m.parameters(): p.requires_grad=False
+          for p in m.features[-3:].parameters(): p.requires_grad=True
+          for p in m.classifier.parameters(): p.requires_grad=True
+          opt=torch.optim.AdamW([p for p in m.parameters() if p.requires_grad],1e-3)
+          t=time.time()
+          for _ in range(3):
+              opt.zero_grad(); m(x).sum().backward(); opt.step()
+          print('train img/s (last3)', 96/(time.time()-t))
+      - name: Zip download speed
+        run: |
+          t=$(date +%s); curl -sSL -o p1.zip "https://dataverse.harvard.edu/api/access/datafile/3172585" -w "%{http_code} %{size_download}\n"; echo secs $(( $(date +%s)-t )); unzip -l p1.zip | tail -2
           PY
