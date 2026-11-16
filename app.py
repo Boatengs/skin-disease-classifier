@@ -289,7 +289,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 """
 
-with gr.Blocks(css=css, title=" Skin Disease Classifier") as demo:
+# Gradio 6 takes css in launch(); earlier versions take it in Blocks().
+GRADIO_6 = int(gr.__version__.split(".")[0]) >= 6
+
+with gr.Blocks(title=" Skin Disease Classifier", **({} if GRADIO_6 else {"css": css})) as demo:
 
     gr.HTML(f"""
     <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()">🌙</button>
@@ -411,4 +414,4 @@ with gr.Blocks(css=css, title=" Skin Disease Classifier") as demo:
         outputs=[diagnosis_output, confidence_output]
     )
 
-demo.launch()
+demo.launch(**({"css": css} if GRADIO_6 else {}))
