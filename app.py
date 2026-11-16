@@ -112,7 +112,7 @@ css = """
     --radius: 16px;
 }
 
-[data-theme="dark"] {
+[data-theme="dark"], .dark {
     --bg-primary: #0f172a;
     --bg-secondary: #1e293b;
     --bg-card: #1e293b;

@@ -120,4 +120,6 @@ Tschandl, P., Rosendahl, C. and Kittler, H. The HAM10000 dataset, a large collec
 
 ## Live demo
 
-The Hugging Face Space still serves the version 1 model: https://huggingface.co/spaces/samurvivor-07/skin-disease-classifier
+https://huggingface.co/spaces/samurvivor-07/skin-disease-classifier
+
+The Space runs `app.py` from this repository, pinned to a commit. It serves the version 2 lesion split model, applies the validation temperature (1.33) to its probabilities, and flags an image for melanoma review when the melanoma probability reaches the threshold set on validation (9.5%). For education only, not a diagnostic tool.
