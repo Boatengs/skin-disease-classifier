@@ -177,28 +177,6 @@
           0.7847946576845142,
           0.8326317318868656
         ]
-      },
-      "seen_vs_unseen_lesions": {
-        "seen": {
-          "images": 407,
-          "accuracy": 0.7051597051597052,
-          "balanced_accuracy": 0.7725943520033292,
-          "macro_f1": 0.7417480245222331,
-          "melanoma_recall": 0.7555555555555555,
-          "melanoma_auroc": 0.8817735716789346,
-          "malignant_auroc": 0.8982813426000754,
-          "ece": 0.06240940181863395
-        },
-        "unseen": {
-          "images": 595,
-          "accuracy": 0.8504201680672269,
-          "balanced_accuracy": 0.6290454505027562,
-          "macro_f1": 0.5898059923225876,
-          "melanoma_recall": 0.5454545454545454,
-          "melanoma_auroc": 0.9075043630017452,
-          "malignant_auroc": 0.9626597315867206,
-          "ece": 0.03689126327258195
-        }
       }
     },
     "image-s2": {
@@ -290,7 +268,7 @@
           "seconds": 197.8
         }
       ],
-      "temperature": 1.2697970754339059,
+      "temperature": 1.2697970754338854,
       "test": {
         "accuracy": 0.7854291417165669,
         "balanced_accuracy": 0.782949354509659,
@@ -377,28 +355,6 @@
           0.7581606141844395,
           0.8103406885867023
         ]
-      },
-      "seen_vs_unseen_lesions": {
-        "seen": {
-          "images": 385,
-          "accuracy": 0.6571428571428571,
-          "balanced_accuracy": 0.7548542029877278,
-          "macro_f1": 0.6691822864033657,
-          "melanoma_recall": 0.8333333333333334,
-          "melanoma_auroc": 0.8780589660068487,
-          "malignant_auroc": 0.8944654088050314,
-          "ece": 0.03895158806404509
-        },
-        "unseen": {
-          "images": 617,
-          "accuracy": 0.8654781199351702,
-          "balanced_accuracy": 0.7784971615764951,
-          "macro_f1": 0.7046932651917154,
-          "melanoma_recall": 0.6470588235294118,
-          "melanoma_auroc": 0.9442538593481989,
-          "malignant_auroc": 0.945130849304407,
-          "ece": 0.02634710199056222
-        }
       }
     },
     "image-s42": {
@@ -490,7 +446,7 @@
           "seconds": 262.0
         }
       ],
-      "temperature": 1.5116404737876037,
+      "temperature": 1.511640473787152,
       "test": {
         "accuracy": 0.7355289421157685,
         "balanced_accuracy": 0.7688345173561801,
@@ -577,28 +533,6 @@
           0.6423659366819189,
           0.7050795743648758
         ]
-      },
-      "seen_vs_unseen_lesions": {
-        "seen": {
-          "images": 398,
-          "accuracy": 0.5979899497487438,
-          "balanced_accuracy": 0.7894409624298442,
-          "macro_f1": 0.6305505307454765,
-          "melanoma_recall": 0.759493670886076,
-          "melanoma_auroc": 0.8526248958374667,
-          "malignant_auroc": 0.8621527777777778,
-          "ece": 0.0753375154793562
-        },
-        "unseen": {
-          "images": 604,
-          "accuracy": 0.8261589403973509,
-          "balanced_accuracy": 0.757842111670267,
-          "macro_f1": 0.6934886724521746,
-          "melanoma_recall": 0.6666666666666666,
-          "melanoma_auroc": 0.9179005466220878,
-          "malignant_auroc": 0.9513827919227393,
-          "ece": 0.04411476549525923
-        }
       }
     },
     "lesion-s1": {
