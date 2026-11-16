@@ -1,0 +1,47 @@
+name: probe
+on:
+  push:
+    branches: [lesion-split-upgrade]
+    paths: [".github/workflows/probe.yml"]
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hardware
+        run: nproc; free -g; df -h / | tail -1
+      - name: Dataverse file list
+        run: |
+          curl -sSL "https://dataverse.harvard.edu/api/datasets/:persistentId/?persistentId=doi:10.7910/DVN/DBW86T" -o ds.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('ds.json'))['data']['latestVersion']
+          print('license', d.get('license'), d.get('termsOfUse','')[:300])
+          for f in d['files']:
+              df=f['dataFile']; print(df['id'], df['filename'], df.get('filesize'), df.get('originalFileName'), f.get('restricted'))
+          PY
+      - name: Try metadata download
+        run: |
+          id=$(python3 -c "import json;fs=json.load(open('ds.json'))['data']['latestVersion']['files'];print([f['dataFile']['id'] for f in fs if 'metadata' in f['dataFile']['filename'].lower()][0])")
+          curl -sSL -o meta "https://dataverse.harvard.edu/api/access/datafile/$id?format=original" -w "%{http_code} %{size_download}\n"
+          head -5 meta; wc -l meta
+          python3 -c "
+          import pandas as pd; m=pd.read_csv('meta'); print(m.shape, m.lesion_id.nunique(), m.image_id.nunique()); print(m.dx.value_counts()); print(m.groupby('lesion_id').size().value_counts().sort_index())"
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: CPU speed test
+        run: |
+          pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          python3 - <<'PY'
+          import torch,time,torchvision
+          torch.set_num_threads(4)
+          m=torchvision.models.efficientnet_b0(weights='IMAGENET1K_V1')
+          x=torch.randn(32,3,224,224)
+          m.eval()
+          with torch.no_grad():
+              t=time.time(); m(x); m(x); print('infer img/s', 64/(time.time()-t))
+          m.train(); opt=torch.optim.AdamW(m.parameters(),1e-4)
+          t=time.time()
+          for _ in range(2):
+              opt.zero_grad(); m(x).sum().backward(); opt.step()
+          print('train img/s (full)', 64/(time.time()-t))
+          PY
