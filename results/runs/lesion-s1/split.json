@@ -1,0 +1,16 @@
+{
+  "split": "lesion",
+  "seed": 1,
+  "images": {
+    "train": 8011,
+    "val": 1002,
+    "test": 1002
+  },
+  "lesions": {
+    "train": 5976,
+    "val": 747,
+    "test": 747
+  },
+  "lesions_shared_train_test": 0,
+  "test_images_with_lesion_in_train": 0
+}
