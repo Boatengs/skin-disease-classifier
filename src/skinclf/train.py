@@ -16,9 +16,9 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import torch.nn as nn
 import torchvision.transforms.v2 as T
 from sklearn.metrics import balanced_accuracy_score
+from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
 from . import CLASSES

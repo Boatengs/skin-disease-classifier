@@ -27,11 +27,11 @@ def _file_ids() -> dict[str, int]:
     return {f["dataFile"]["filename"]: f["dataFile"]["id"] for f in files}
 
 
-def download(root: Path) -> Path:
+def download(root: Path, metadata_only: bool = False) -> Path:
     """Fetch metadata and both image archives into `root`, then unzip."""
     root.mkdir(parents=True, exist_ok=True)
     ids = _file_ids()
-    for name in WANTED:
+    for name in WANTED[:1] if metadata_only else WANTED:
         target = root / name.replace(".tab", ".csv")
         if target.exists():
             continue
@@ -39,7 +39,7 @@ def download(root: Path) -> Path:
         print(f"downloading {name}", flush=True)
         urllib.request.urlretrieve(url, target)
     images = root / "images"
-    if not images.exists():
+    if not metadata_only and not images.exists():
         images.mkdir()
         for part in ("HAM10000_images_part_1.zip", "HAM10000_images_part_2.zip"):
             with zipfile.ZipFile(root / part) as z:

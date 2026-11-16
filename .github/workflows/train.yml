@@ -1,0 +1,88 @@
+name: train and evaluate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [lesion-split-upgrade]
+    paths: [".github/workflows/train.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  finetune:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        split: [image, lesion]
+        seed: [42, 1, 2]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Install
+        run: |
+          pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -q -e .
+      - name: Fine-tune
+        run: python -m skinclf.train --split ${{ matrix.split }} --seed ${{ matrix.seed }} --out runs/${{ matrix.split }}-s${{ matrix.seed }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: run-${{ matrix.split }}-s${{ matrix.seed }}
+          path: runs/${{ matrix.split }}-s${{ matrix.seed }}
+          retention-days: 30
+
+  leakage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Install
+        run: |
+          pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -q -e .
+      - name: Frozen-feature leakage check
+        run: python -m skinclf.leakage --out runs/leakage --seeds 20
+      - uses: actions/upload-artifact@v4
+        with:
+          name: run-leakage
+          path: runs/leakage/leakage.json
+          retention-days: 30
+
+  report:
+    needs: [finetune, leakage]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Install
+        run: |
+          pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -q -e .
+      - uses: actions/download-artifact@v4
+        with: {path: artifacts}
+      - name: Arrange runs
+        run: |
+          mkdir -p runs/leakage models
+          for d in artifacts/run-*-s*; do n=${d#artifacts/run-}; mkdir -p runs/$n; cp $d/* runs/$n/; done
+          cp artifacts/run-leakage/leakage.json runs/leakage/
+          python -c "from pathlib import Path; from skinclf.data import download; download(Path('data'), metadata_only=True)"
+      - name: Report
+        run: python -m skinclf.report --runs runs --out results
+      - name: Keep predictions and the main model
+        run: |
+          for d in runs/*-s*; do mkdir -p results/runs/$(basename $d); cp $d/predictions.npz $d/history.json $d/split.json results/runs/$(basename $d)/; done
+          cp runs/leakage/leakage.json results/runs/
+          cp runs/lesion-s42/model.pth models/lesion_split_efficientnet_b0.pth
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898729+github-actions[bot]@users.noreply.github.com"
+          git add results models
+          git commit -m "Training and evaluation results from run ${{ github.run_id }}"
+          git push

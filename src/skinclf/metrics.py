@@ -1,7 +1,7 @@
 """Evaluation metrics, calibration and lesion-level bootstrap intervals."""
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 from scipy.optimize import minimize_scalar
@@ -40,7 +40,7 @@ def expected_calibration_error(probs: np.ndarray, y: np.ndarray, n_bins: int = 1
     correct = (probs.argmax(axis=1) == y).astype(float)
     edges = np.linspace(0.0, 1.0, n_bins + 1)
     ece = 0.0
-    for lo, hi in zip(edges[:-1], edges[1:]):
+    for lo, hi in zip(edges[:-1], edges[1:], strict=True):
         mask = (conf > lo) & (conf <= hi)
         if mask.any():
             ece += mask.mean() * abs(correct[mask].mean() - conf[mask].mean())

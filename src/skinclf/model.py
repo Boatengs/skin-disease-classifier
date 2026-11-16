@@ -1,8 +1,8 @@
 """EfficientNetB0 with the same head and unfrozen blocks as the original notebook."""
 from __future__ import annotations
 
-import torch.nn as nn
-import torchvision.models as models
+from torch import nn
+from torchvision import models
 
 from . import CLASSES
 
