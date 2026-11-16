@@ -112,6 +112,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898729+github-actions[bot]@users.noreply.github.com"
-          git add results models
+          git add -A results models
           git commit -m "Training and evaluation results from run ${{ github.run_id }}"
           git push

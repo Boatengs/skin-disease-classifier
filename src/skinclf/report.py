@@ -68,13 +68,6 @@ def evaluate_run(run: Path, meta: pd.DataFrame, n_boot: int) -> dict:
         },
     }
 
-    # Inside one model: test photos whose lesion was also in training versus unseen lesions.
-    seen = np.isin(lesions[test_rows], lesions[p["train_rows"]])
-    if seen.any() and (~seen).any():
-        out["seen_vs_unseen_lesions"] = {
-            "seen": {"images": int(seen.sum()), **summary(cal[seen], yt[seen])},
-            "unseen": {"images": int((~seen).sum()), **summary(cal[~seen], yt[~seen])},
-        }
     return out
 
 
@@ -189,26 +182,34 @@ def markdown(results: dict) -> str:
              f"{im['split']['test_images_with_lesion_in_train']} of {im['split']['images']['test']} | "
              f"{le['split']['test_images_with_lesion_in_train']} of {le['split']['images']['test']} |")
     L.append("")
-    if "seen_vs_unseen_lesions" in im:
-        s, u = im["seen_vs_unseen_lesions"]["seen"], im["seen_vs_unseen_lesions"]["unseen"]
-        L += ["## Inside the image split model", "",
-              "The same model, scored separately on test photos of lesions it had already seen in training "
-              "and on photos of new lesions.", "",
-              "| Test photos | Images | Accuracy | Balanced accuracy |", "|---|---|---|---|",
-              f"| Lesion also in training | {s['images']} | {pct(s['accuracy'])} | {pct(s['balanced_accuracy'])} |",
-              f"| New lesion | {u['images']} | {pct(u['accuracy'])} | {pct(u['balanced_accuracy'])} |", ""]
     seeds = sorted({n.split("-s")[1] for n in results["runs"]}, key=int)
-    if len(seeds) > 1:
-        L += ["## Every fine-tuning seed", "",
-              "Each seed changes the split, the initial head weights and the batch order.", "",
-              "| Seed | Image split accuracy | Lesion split accuracy | Image split balanced accuracy | "
-              "Lesion split balanced accuracy |", "|---|---|---|---|---|"]
-        for sd in seeds:
-            a, b = results["runs"].get(f"image-s{sd}"), results["runs"].get(f"lesion-s{sd}")
-            if a and b:
-                L.append(f"| {sd} | {pct(a['test']['accuracy'])} | {pct(b['test']['accuracy'])} | "
-                         f"{pct(a['test']['balanced_accuracy'])} | {pct(b['test']['balanced_accuracy'])} |")
-        L.append("")
+    pairs = [(results["runs"][f"image-s{sd}"], results["runs"][f"lesion-s{sd}"]) for sd in seeds
+             if f"image-s{sd}" in results["runs"] and f"lesion-s{sd}" in results["runs"]]
+    if len(pairs) > 1:
+        getters = [
+            ("Accuracy", lambda r: r["test"]["accuracy"], True),
+            ("Balanced accuracy", lambda r: r["test"]["balanced_accuracy"], True),
+            ("Melanoma AUROC", lambda r: r["test"]["melanoma_auroc"], False),
+            ("Malignant vs benign AUROC", lambda r: r["test"]["malignant_auroc"], False),
+            ("Melanoma triage sensitivity", lambda r: r["melanoma_triage"]["test_sensitivity"], True),
+            ("Melanoma triage specificity", lambda r: r["melanoma_triage"]["test_specificity"], True),
+        ]
+        L += [f"## All {len(pairs)} fine-tuning seeds", "",
+              "Each seed changes the split, the initial head weights and the batch order. "
+              "Triage uses a melanoma threshold set on validation to catch 90% of melanomas.", "",
+              "| Metric | Image split, per seed | Lesion split, per seed | Mean gap (image minus lesion) | "
+              "Seeds where image split is higher |", "|---|---|---|---|---|"]
+        for label, get, as_pct in getters:
+            a = [get(x) for x, _ in pairs]
+            b = [get(y) for _, y in pairs]
+            fmt = (lambda v: f"{v * 100:.1f}") if as_pct else (lambda v: f"{v:.3f}")
+            gap = float(np.mean(np.subtract(a, b)))
+            gap_s = f"{gap * 100:+.1f} points" if as_pct else f"{gap:+.3f}"
+            higher = sum(x > y for x, y in zip(a, b, strict=True))
+            L.append(f"| {label} | {', '.join(fmt(v) for v in a)} | {', '.join(fmt(v) for v in b)} | "
+                     f"{gap_s} | {higher} of {len(pairs)} |")
+        L += ["", f"Seeds in order: {', '.join(seeds)}. Triage sensitivity and specificity trade off against each "
+              "other, so the two triage rows should be read together; AUROC is the threshold-free comparison.", ""]
     if "leakage" in results:
         lk = results["leakage"]
         b = lk["by_split"]

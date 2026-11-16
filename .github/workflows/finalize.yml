@@ -1,0 +1,54 @@
+name: rebuild report from a training run
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id: {description: "Training run id", required: true}
+  push:
+    branches: [lesion-split-upgrade]
+    paths: [".github/workflows/finalize.yml", "src/skinclf/report.py"]
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  RUN_ID: ${{ github.event.inputs.run_id || '43913105270' }}
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Install
+        run: |
+          pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -q -e .
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: "run-*"
+          run-id: ${{ env.RUN_ID }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Arrange runs
+        run: |
+          mkdir -p runs/leakage models data
+          for d in artifacts/run-*-s*; do n=${d#artifacts/run-}; mkdir -p runs/$n; cp $d/* runs/$n/; done
+          cp artifacts/run-leakage/leakage.json runs/leakage/
+          python -c "from pathlib import Path; from skinclf.data import download; download(Path('data'), metadata_only=True)"
+      - name: Report
+        run: python -m skinclf.report --runs runs --out results
+      - name: Keep predictions and the main model
+        run: |
+          for d in runs/*-s*; do mkdir -p results/runs/$(basename $d); cp $d/predictions.npz $d/history.json $d/split.json results/runs/$(basename $d)/; done
+          cp runs/leakage/leakage.json results/runs/
+          cp runs/lesion-s42/model.pth models/lesion_split_efficientnet_b0.pth
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898729+github-actions[bot]@users.noreply.github.com"
+          git add -A results models
+          git diff --cached --quiet || git commit -m "Rebuild report and save model from training run $RUN_ID"
+          git push
