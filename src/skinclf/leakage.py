@@ -79,7 +79,8 @@ def main() -> None:
     ap.add_argument("--seeds", type=int, default=10)
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
-    download(args.data)
+    if not (args.data / "cache224.npy").exists():
+        download(args.data)
     meta = load_metadata(args.data / "HAM10000_metadata.csv")
     images = build_cache(meta, args.data / "images", args.data / "cache224.npy")
     feats_path = args.out / "embeddings.npy"

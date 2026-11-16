@@ -4,13 +4,36 @@ on:
   workflow_dispatch:
   push:
     branches: [lesion-split-upgrade]
-    paths: [".github/workflows/train.yml"]
+    paths: [".github/workflows/train.yml", "src/skinclf/data.py"]
 
 permissions:
   contents: write
 
 jobs:
+  data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Install
+        run: |
+          pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
+          pip install -q -e .
+      - name: Download HAM10000 and build the image cache
+        run: python -m skinclf.data data
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ham10000-cache
+          path: |
+            data/HAM10000_metadata.csv
+            data/cache224.npy
+          compression-level: 1
+          retention-days: 3
+
   finetune:
+    needs: data
     runs-on: ubuntu-latest
     timeout-minutes: 300
     strategy:
@@ -26,6 +49,8 @@ jobs:
         run: |
           pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
           pip install -q -e .
+      - uses: actions/download-artifact@v4
+        with: {name: ham10000-cache, path: data}
       - name: Fine-tune
         run: python -m skinclf.train --split ${{ matrix.split }} --seed ${{ matrix.seed }} --out runs/${{ matrix.split }}-s${{ matrix.seed }}
       - uses: actions/upload-artifact@v4
@@ -35,6 +60,7 @@ jobs:
           retention-days: 30
 
   leakage:
+    needs: data
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -45,6 +71,8 @@ jobs:
         run: |
           pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
           pip install -q -e .
+      - uses: actions/download-artifact@v4
+        with: {name: ham10000-cache, path: data}
       - name: Frozen-feature leakage check
         run: python -m skinclf.leakage --out runs/leakage --seeds 20
       - uses: actions/upload-artifact@v4
@@ -65,12 +93,13 @@ jobs:
           pip install -q torch torchvision --index-url https://download.pytorch.org/whl/cpu
           pip install -q -e .
       - uses: actions/download-artifact@v4
-        with: {path: artifacts}
+        with: {path: artifacts, pattern: "run-*"}
       - name: Arrange runs
         run: |
           mkdir -p runs/leakage models
           for d in artifacts/run-*-s*; do n=${d#artifacts/run-}; mkdir -p runs/$n; cp $d/* runs/$n/; done
           cp artifacts/run-leakage/leakage.json runs/leakage/
+          mkdir -p data
           python -c "from pathlib import Path; from skinclf.data import download; download(Path('data'), metadata_only=True)"
       - name: Report
         run: python -m skinclf.report --runs runs --out results

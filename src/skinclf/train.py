@@ -75,7 +75,8 @@ def main() -> None:
     torch.set_num_threads(args.threads)
     args.out.mkdir(parents=True, exist_ok=True)
 
-    download(args.data)
+    if not (args.data / "cache224.npy").exists():
+        download(args.data)
     meta = load_metadata(args.data / "HAM10000_metadata.csv")
     images = build_cache(meta, args.data / "images", args.data / "cache224.npy")
     labels = meta["label"].to_numpy()

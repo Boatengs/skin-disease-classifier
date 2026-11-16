@@ -6,6 +6,8 @@ Source: Tschandl, Rosendahl and Kittler, "The HAM10000 dataset", Scientific Data
 from __future__ import annotations
 
 import json
+import shutil
+import time
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -18,11 +20,24 @@ from . import CLASSES
 DATAVERSE = "https://dataverse.harvard.edu"
 DOI = "doi:10.7910/DVN/DBW86T"
 WANTED = ["HAM10000_metadata.tab", "HAM10000_images_part_1.zip", "HAM10000_images_part_2.zip"]
+# Dataverse refuses Python's default user agent.
+HEADERS = {"User-Agent": "skinclf/2.0 (+https://github.com/Boatengs/skin-disease-classifier)"}
+
+
+def _open(url: str, attempts: int = 4):
+    for i in range(attempts):
+        try:
+            return urllib.request.urlopen(urllib.request.Request(url, headers=HEADERS), timeout=120)
+        except OSError:
+            if i == attempts - 1:
+                raise
+            time.sleep(10 * (i + 1))
+    raise RuntimeError("unreachable")
 
 
 def _file_ids() -> dict[str, int]:
     url = f"{DATAVERSE}/api/datasets/:persistentId/?persistentId={DOI}"
-    with urllib.request.urlopen(url, timeout=60) as r:
+    with _open(url) as r:
         files = json.load(r)["data"]["latestVersion"]["files"]
     return {f["dataFile"]["filename"]: f["dataFile"]["id"] for f in files}
 
@@ -37,7 +52,10 @@ def download(root: Path, metadata_only: bool = False) -> Path:
             continue
         url = f"{DATAVERSE}/api/access/datafile/{ids[name]}?format=original"
         print(f"downloading {name}", flush=True)
-        urllib.request.urlretrieve(url, target)
+        part = target.with_suffix(target.suffix + ".part")
+        with _open(url) as r, open(part, "wb") as f:
+            shutil.copyfileobj(r, f, length=1 << 20)
+        part.rename(target)
     images = root / "images"
     if not metadata_only and not images.exists():
         images.mkdir()
@@ -85,3 +103,16 @@ def build_cache(meta: pd.DataFrame, image_dir: Path, out: Path, size: int = 224)
             print(f"cached {i}/{len(meta)}", flush=True)
     arr.flush()
     return np.load(out, mmap_mode="r")
+
+
+def prepare(root: Path) -> None:
+    """Download once and write metadata plus the resized image cache."""
+    download(root)
+    meta = load_metadata(root / "HAM10000_metadata.csv")
+    build_cache(meta, root / "images", root / "cache224.npy")
+
+
+if __name__ == "__main__":
+    import sys
+
+    prepare(Path(sys.argv[1] if len(sys.argv) > 1 else "data"))
