@@ -110,8 +110,8 @@ jobs:
           cp runs/lesion-s42/model.pth models/lesion_split_efficientnet_b0.pth
       - name: Commit results
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898729+github-actions[bot]@users.noreply.github.com"
+          git config user.name "Sam Boateng"
+          git config user.email "32736261+Boatengs@users.noreply.github.com"
           git add -A results models
           git commit -m "Training and evaluation results from run ${{ github.run_id }}"
           git push
